@@ -1,7 +1,6 @@
 package io.github.bobfrostman.zephyr.client;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.WriterConfig;
+import io.github.bobfrostman.zephyr.client.response.ApiResponse;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -16,20 +15,24 @@ public class BasicApiClient {
         verbose = isVerboseOutput;
     }
 
-    static String executeGet(String url, String bearerToken) throws IOException {
+    static ApiResponse executeGet(String url, String bearerToken) throws IOException {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
         con.setRequestMethod("GET");
         con.setRequestProperty("Authorization", "Bearer " + bearerToken);
 
-        return getResponse(con);
+        String responseBody = getResponseBody(con);
+        int responseCode = con.getResponseCode();
+        con.disconnect();
+
+        return new ApiResponse(responseCode, responseBody);
     }
 
-     static String executePost(String url, String requestBody, String bearerToken) throws IOException {
+     static ApiResponse executePost(String url, String requestBody, String bearerToken) throws IOException {
         return executeRequest("POST", url, requestBody, bearerToken);
     }
 
-     static String executePut(String url, String requestBody, String bearerToken) throws IOException {
+     static ApiResponse executePut(String url, String requestBody, String bearerToken) throws IOException {
         return executeRequest("PUT", url, requestBody, bearerToken);
     }
 
@@ -39,10 +42,10 @@ public class BasicApiClient {
         con.setRequestMethod("DELETE");
         con.setRequestProperty("Authorization", "Bearer " + bearerToken);
 
-        return getResponse(con);
+        return getResponseBody(con);
     }
 
-    private static String executeRequest(String method, String url, String requestBody, String bearerToken) throws IOException {
+    private static ApiResponse executeRequest(String method, String url, String requestBody, String bearerToken) throws IOException {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
@@ -55,42 +58,30 @@ public class BasicApiClient {
             byte[] input = requestBody.getBytes(StandardCharsets.UTF_8);
             os.write(input, 0, input.length);
         }
-
-        return getResponse(con);
+        String responseBody = getResponseBody(con);
+        int responseCode = con.getResponseCode();
+        con.disconnect();
+        return new ApiResponse(responseCode, responseBody);
     }
 
-    private static String getResponse(HttpURLConnection con) throws IOException {
-        int responseCode = con.getResponseCode();
-        if (verbose) {
-            System.out.println(con.getRequestMethod() + " " + con.getURL().toString());
-            System.out.println("Response code: " + responseCode);
-        }
+    private static String getResponseBody(HttpURLConnection con) throws IOException {
         StringBuilder response = new StringBuilder();
-
         try (BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()))) {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 response.append(inputLine);
             }
         } catch (IOException e) {
-            // Handle cases where there's no regular response body (e.g., 204 No Content)
-            try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(con.getErrorStream()))) {
-                String errorLine;
-                while ((errorLine = errorReader.readLine()) != null) {
-                    response.append(errorLine);
+            InputStream errorStream = con.getErrorStream();
+            if (errorStream != null) {
+                try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream))) {
+                    String errorLine;
+                    while ((errorLine = errorReader.readLine()) != null) {
+                        response.append(errorLine);
+                    }
                 }
-            } catch (NullPointerException ignored) {
-                // No error stream
             }
-        } finally {
-            con.disconnect();
         }
-        String respString = response.toString();
-        StringWriter str = new StringWriter();
-        Json.parse(respString).writeTo(str, WriterConfig.PRETTY_PRINT);
-        if (verbose) {
-            System.out.println("Response Body:\n" + str);
-        }
-        return respString;
+        return response.toString();
     }
 }

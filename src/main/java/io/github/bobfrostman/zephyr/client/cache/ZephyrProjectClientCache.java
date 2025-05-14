@@ -15,7 +15,7 @@ public class ZephyrProjectClientCache {
     private List<ZephyrTestCaseStatus> statusesCache;
     private List<ZephyrTestCaseFolder> foldersCache;
 
-    ZephyrProjectClientCache() {
+    public ZephyrProjectClientCache() {
         statusesCache = new ArrayList<>();
         prioritiesCache = new ArrayList<>();
         foldersCache = new ArrayList<>();

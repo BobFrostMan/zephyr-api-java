@@ -13,6 +13,7 @@ import java.util.function.BiFunction;
 public class ZephyrResponseParser {
 
     private static final Map<Class<?>, BiFunction<JsonObject, ZephyrProjectClientCache, ?>> PARSER_MAP = new HashMap<>();
+    private static List<String> paths = new CopyOnWriteArrayList<>();
 
     static {
         PARSER_MAP.put(ZephyrTestCase.class, ZephyrResponseParser::parseTestCase);
@@ -153,9 +154,4 @@ public class ZephyrResponseParser {
             return result;
         }
     }
-
-    //TODO: find another palce for it
-    private static List<String> paths = new CopyOnWriteArrayList<>();
-
-
 }

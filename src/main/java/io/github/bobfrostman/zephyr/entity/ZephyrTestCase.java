@@ -142,6 +142,11 @@ public class ZephyrTestCase {
             return this;
         }
 
+        public Builder step(String step) {
+            steps.add(step);
+            return this;
+        }
+
         public Builder priorityName(String priorityName) {
             this.priorityName = priorityName;
             return this;

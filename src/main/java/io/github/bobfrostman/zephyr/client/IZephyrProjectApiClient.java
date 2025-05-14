@@ -1,37 +1,103 @@
 package io.github.bobfrostman.zephyr.client;
 
-import io.github.bobfrostman.zephyr.entity.*;
+import io.github.bobfrostman.zephyr.client.response.*;
 
 import java.util.List;
+import java.util.Map;
 
 public interface IZephyrProjectApiClient {
 
-    IZephyrProjectApiClient createProjectClient(String url, String token, String projectKey, boolean verbose);
+    GetTestCasesResponse getTestCases();
 
-    List<ZephyrTestCase> getTestCases();
+    GetTestCasesResponse getTestCases(boolean includeSteps);
 
-    List<ZephyrTestCase> getTestCases(boolean includeSteps);
+    GetTestCaseResponse getTestCase(String testCaseKey);
 
-    ZephyrTestCase getTestCase(String testCaseKey);
+    GetTestCaseResponse getTestCase(String testCaseKey, boolean includeSteps);
 
-    //If builder implemented
-    ZephyrTestCase getTestCase(String testCaseKey, boolean includeSteps);
+    NewTestCaseBuilder newTestCase();
 
-    ZephyrTestCase.Builder createTestCase();
+    UpdateTestCaseBuilder updateTestCase(String testCaseKey);
 
-    //TODO: remove for simplicity
-    ZephyrTestScript createTestScript();
+    NewFolderBuilder newTestCaseFolder();
 
-    ZephyrTestCase.Builder updateTestCase(String testCaseKey);
+    GetStatusesResponse getStatuses();
 
-    List<ZephyrTestCaseStatus> getStatuses();
+    GetPrioritiesResponse getPriorities();
 
-    List<ZephyrTestCasePriority> getPriorities();
+    GetFoldersResponse getFolders();
 
-    List<ZephyrTestCaseFolder> getFolders();
+    GetTestStepsResponse getTestSteps(String testCaseKey);
 
-    ZephyrTestScript getTestSteps(String testCaseKey);
+    GetProjectResponse getProject();
 
-    ZephyrProject getProject();
 
+}
+
+interface NewTestCaseBuilder {
+    NewTestCaseBuilder withName(String name);
+
+    NewTestCaseBuilder withObjective(String objective);
+
+    NewTestCaseBuilder withPrecondition(String precondition);
+
+    NewTestCaseBuilder withLabel(String label);
+
+    NewTestCaseBuilder withLabels(List<String> labels);
+
+    NewTestCaseBuilder withPriorityName(String priorityName);
+
+    NewTestCaseBuilder withStatusName(String statusName);
+
+    NewTestCaseBuilder withFolderId(Long folderId);
+
+    NewTestCaseBuilder withStep(String step);
+
+    NewTestCaseBuilder withSteps(List<String> steps);
+
+    NewTestCaseBuilder withCustomField(String name, Object value);
+
+    NewTestCaseBuilder withCustomFields(Map<String, Object> customFields);
+
+    CreateTestCaseResponse create();
+}
+
+interface UpdateTestCaseBuilder {
+    UpdateTestCaseBuilder withName(String name);
+
+    UpdateTestCaseBuilder withObjective(String objective);
+
+    UpdateTestCaseBuilder withPrecondition(String precondition);
+
+    UpdateTestCaseBuilder withLabel(String label);
+
+    UpdateTestCaseBuilder withLabels(List<String> labels);
+
+    UpdateTestCaseBuilder withPriorityName(String priorityName);
+
+    UpdateTestCaseBuilder withStatusName(String statusName);
+
+    UpdateTestCaseBuilder withFolderId(Long folderId);
+
+    UpdateTestCaseBuilder withStep(String step);
+
+    UpdateTestCaseBuilder withSteps(List<String> steps);
+
+    UpdateTestCaseBuilder withCustomField(String name, Object value);
+
+    UpdateTestCaseBuilder withCustomFields(Map<String, Object> customFields);
+
+    UpdateTestCaseResponse update();
+}
+
+interface NewFolderBuilder {
+    NewFolderBuilder withName(String name);
+
+    NewFolderBuilder withParentId(Long parentId);
+
+    NewFolderBuilder withFolderType(String folderType);
+
+    NewFolderBuilder withPath(String folderPath);
+
+    CreateFolderResponse create();
 }

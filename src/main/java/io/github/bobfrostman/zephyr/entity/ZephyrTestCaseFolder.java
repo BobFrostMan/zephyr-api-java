@@ -50,6 +50,53 @@ public class ZephyrTestCaseFolder {
         this.path = path;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private Long id;
+        private String name;
+        private String path;
+        private String folderType;
+        private Long parentId;
+
+        public Builder id(Long id) {
+            this.id = id;
+            return this;
+        }
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder path(String path) {
+            this.path = path;
+            return this;
+        }
+
+        public Builder folderType(String folderType) {
+            this.folderType = folderType;
+            return this;
+        }
+
+        public Builder parentId(Long parentId) {
+            this.parentId = parentId;
+            return this;
+        }
+
+        public ZephyrTestCaseFolder build() {
+            ZephyrTestCaseFolder folder = new ZephyrTestCaseFolder();
+            folder.setId(this.id);
+            folder.setName(this.name);
+            folder.setPath(this.path);
+            folder.setFolderType(this.folderType);
+            folder.setParentId(this.parentId);
+            return folder;
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
