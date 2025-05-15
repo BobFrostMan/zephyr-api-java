@@ -294,7 +294,6 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
 
     private CreateTestCaseResponse createTestCase(ZephyrTestCase testCase) {
         ZephyrProjectClientCache cache = useCache();
-
         JsonObject object = Json.object()
                 //"componentId": 10001,
                 .add("projectKey", testCase.getProjectKey())
@@ -302,8 +301,11 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                 .add("objective", testCase.getObjective())
                 .add("priorityName", testCase.getPriorityName())
                 .add("statusName", testCase.getStatusName())
-                .add("folderId", testCase.getFolderId())
                 .add("labels", Json.parse(testCase.getLabels().toString()));
+        if (testCase.getFolderId() == null) {
+            Long folderId = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).toList().get(0).getId();
+            object.add("folderId", folderId);
+        }
         JsonObject customFields = Json.object();
         for (Map.Entry<String, Object> entry : testCase.getCustomFields().entrySet()) {
             object.add(entry.getKey(), String.valueOf(entry.getValue()));

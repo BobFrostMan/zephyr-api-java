@@ -1,12 +1,11 @@
 package io.github.bobfrostman.zephyr.client.cache;
 
-import io.github.bobfrostman.zephyr.entity.ZephyrProject;
-import io.github.bobfrostman.zephyr.entity.ZephyrTestCaseFolder;
-import io.github.bobfrostman.zephyr.entity.ZephyrTestCasePriority;
-import io.github.bobfrostman.zephyr.entity.ZephyrTestCaseStatus;
+import io.github.bobfrostman.zephyr.entity.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ZephyrProjectClientCache {
 

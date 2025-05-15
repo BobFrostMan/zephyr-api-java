@@ -51,7 +51,6 @@ public class ZephyrResponseParser {
         String statusName = statusId != -1 ? cache.getStatuses().stream().filter(item -> item.getId() == statusId).toList().get(0).getName() : null;
         String path = folderId != -1 ? resolvePath(folderId, cache.getFolders()) : null;
         List<String> labels = jsonResponseObject.get("labels").asArray().values().stream().map(JsonValue::asString).toList();
-
         return ZephyrTestCase.builder()
                 .key(jsonResponseObject.getString("key"))
                 .projectKey(cache.getProject().getKey())
