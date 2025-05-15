@@ -1,5 +1,6 @@
 package io.github.bobfrostman.zephyr.client;
 
+import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
@@ -86,6 +87,7 @@ public class ZephyrResponseParser {
 
     static ZephyrTestCaseFolder parseFolder(JsonObject jsonFolderObject, ZephyrProjectClientCache cache) {
         ZephyrTestCaseFolder folder = new ZephyrTestCaseFolder();
+        folder.setFolderType(jsonFolderObject.getString("folderType"));
         folder.setId(jsonFolderObject.getLong("id", -1));
         folder.setName(jsonFolderObject.getString("name"));
         if (jsonFolderObject.get("parentId").isNull()) {
@@ -132,7 +134,7 @@ public class ZephyrResponseParser {
         return customFields;
     }
 
-    private static String resolvePath(Long tcFolderId, List<ZephyrTestCaseFolder> folders) {
+    static String resolvePath(Long tcFolderId, List<ZephyrTestCaseFolder> folders) {
         if (tcFolderId != null) {
             List<ZephyrTestCaseFolder> filteredFolders = folders.stream().filter(item -> tcFolderId.equals(item.getId())).toList();
             if (filteredFolders.isEmpty()) {

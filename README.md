@@ -29,16 +29,10 @@ Glory to Ukraine!
 
 ### Prerequisites
 Java 11 or later.
+Generated Zephyr [access token](https://support.smartbear.com/zephyr/docs/en/rest-api/api-access-tokens-management.html).
 
 ### Installation
-This project is currently under development, so there is no official release on Maven Central yet. You can clone the repository and build the JAR file yourself:
-
-```bash
-git clone <your repository link>
-cd zephyr-scale-java-client
-mvn clean install
-```
-After a successful build, add the dependency to your project's pom.xml (if you are using Maven):
+Add the dependency to your project's pom.xml (if you are using Maven):
 
 ```maven
 <dependency>
@@ -53,20 +47,22 @@ implementation 'io.github.bobfrostman:zephyr-scale-java-client:1.0.0' // Replace
 ```
 
 ## Client Initialization
-To start working with the Zephyr  API, you need to create an instance of ZephyrProjectApiClient using the Builder:
+To start working with the Zephyr API, you need to use createClient method of ZephyrApi class.
 
+You will also need [generated access token](https://support.smartbear.com/zephyr/docs/en/rest-api/api-access-tokens-management.html) to reach Zephyr API.
 ```java
 import io.github.bobfrostman.zephyr.client.IZephyrProjectApiClient;
-import io.github.bobfrostman.zephyr.client.ZephyrProjectApiClientBuilder;
+import io.github.bobfrostman.zephyr.ZephyrAPI;
 
 public class Example {
 
     public static void main(String[] args) {
-        String apiUrl = "YOUR_ZEPHYR_SCALE_API_URL";
+        //api url has a default smartbear server url by default, it's not required to specify for builder
+        String apiUrl = "https://api.zephyrscale.smartbear.com/v2"; 
         String token = "YOUR_ZEPHYR_SCALE_API_TOKEN";
         String projectKey = "YOUR_PROJECT_KEY";
     
-        IZephyrProjectApiClient client = new ZephyrProjectApiClientBuilder()
+        IZephyrProjectApiClient client = ZephyrAPI.createClient()
                 .withApiUrl(apiUrl)
                 .withToken(token)
                 .withProjectKey(projectKey)

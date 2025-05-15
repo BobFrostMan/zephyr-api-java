@@ -3,6 +3,9 @@ package io.github.bobfrostman.zephyr.client;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import io.github.bobfrostman.zephyr.client.builder.NewFolderBuilder;
+import io.github.bobfrostman.zephyr.client.builder.NewTestCaseBuilder;
+import io.github.bobfrostman.zephyr.client.builder.UpdateTestCaseBuilder;
 import io.github.bobfrostman.zephyr.client.cache.ZephyrProjectClientCache;
 import io.github.bobfrostman.zephyr.client.response.*;
 import io.github.bobfrostman.zephyr.entity.*;
@@ -12,8 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.github.bobfrostman.zephyr.client.ZephyrResponseParser.getParserFunction;
-import static io.github.bobfrostman.zephyr.client.ZephyrResponseParser.parseValues;
+import static io.github.bobfrostman.zephyr.client.ZephyrResponseParser.*;
 
 public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
 
@@ -242,12 +244,15 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                 .add("type", type)
                 .add("text", String.join("\n", steps));
         try {
-            ApiResponse response = BasicApiClient.executePost(url, object.asString(), token);
+            ApiResponse response = BasicApiClient.executePost(url, object.toString(), token);
             int statusCode = response.getStatusCode();
             String responseBody = response.getBody();
             JsonObject jsonResponse = Json.parse(responseBody).asObject();
             if (statusCode >= 200 && statusCode < 300) {
-                ZephyrTestScript script = getParserFunction(ZephyrTestScript.class).apply(jsonResponse.asObject(), clientCache);
+                ZephyrTestScript script = new ZephyrTestScript();
+                script.setId(jsonResponse.getLong("id", -1));
+                script.setType(type);
+                script.setSteps(steps);
                 return new CreateTestStepsResponse(statusCode, script, null);
             } else {
                 String errorMessage = jsonResponse.getString("message", "Cannot create test script");
@@ -285,7 +290,6 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
     private CreateTestCaseResponse createTestCase(ZephyrTestCase testCase) {
         ZephyrProjectClientCache cache = useCache();
         JsonObject object = Json.object()
-                //"componentId": 10001,
                 .add("projectKey", testCase.getProjectKey())
                 .add("name", testCase.getName())
                 .add("objective", testCase.getObjective())
@@ -293,8 +297,19 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                 .add("statusName", testCase.getStatusName())
                 .add("labels", Json.parse(testCase.getLabels().toString()));
         if (testCase.getFolderId() == null) {
-            Long folderId = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).toList().get(0).getId();
-            object.add("folderId", folderId);
+            List<ZephyrTestCaseFolder> folderList = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).toList();
+            if (!folderList.isEmpty()) {
+                Long folderId = folderList.get(0).getId();
+                object.add("folderId", folderId);
+            } else {
+                //TODO: find folder recursively
+                int index = testCase.getPath().length()-1;
+                if (testCase.getPath().endsWith("/")){
+                    index -= 1;
+                }
+                String prevFolder = testCase.getPath().substring(0, testCase.getPath().lastIndexOf("/", index)) + "/";
+                //TODO: path is not resolved properly for inner folders
+            }
         }
         JsonObject customFields = Json.object();
         for (Map.Entry<String, Object> entry : testCase.getCustomFields().entrySet()) {
@@ -304,12 +319,26 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
 
         String url = String.format("%stestcases", apiUrl);
         try {
-            ApiResponse response = BasicApiClient.executePost(url, object.asString(), token);
+            ApiResponse response = BasicApiClient.executePost(url, object.toString(), token);
             int statusCode = response.getStatusCode();
             String responseBody = response.getBody();
             JsonObject jsonResponse = Json.parse(responseBody).asObject();
             if (statusCode >= 200 && statusCode < 300) {
-                ZephyrTestCase tc = getParserFunction(ZephyrTestCase.class).apply(jsonResponse.asObject(), cache);
+                ZephyrTestCase tc = ZephyrTestCase.builder()
+                        .key(jsonResponse.getString("key"))
+                        .name(testCase.getName())
+                        .projectKey(projectKey)
+                        .objective(testCase.getObjective())
+                        .precondition(testCase.getPrecondition())
+                        .labels(testCase.getLabels())
+                        .priorityName(testCase.getPriorityName())
+                        .statusName(testCase.getStatusName())
+                        .path(testCase.getPath())
+                        .folderId(testCase.getFolderId())
+                        .customFields(testCase.getCustomFields())
+                        .steps(testCase.getSteps())
+                        .build();
+                //getParserFunction(ZephyrTestCase.class).apply(jsonResponse.asObject(), cache);
                 if (testCase.getSteps() != null && !testCase.getSteps().isEmpty()) {
                     CreateTestStepsResponse stepsResponse = createTestScript(tc.getKey(), "bdd", testCase.getSteps());
                     if (!stepsResponse.isSuccessful()) {
@@ -349,7 +378,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         }
         object.add("customFields", customFields);
         try {
-            ApiResponse response = BasicApiClient.executePut(url, object.asString(), token);
+            ApiResponse response = BasicApiClient.executePut(url, object.toString(), token);
             int statusCode = response.getStatusCode();
             String responseBody = response.getBody();
             JsonObject jsonResponse = Json.parse(responseBody).asObject();
@@ -375,18 +404,32 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
 
     private CreateFolderResponse createTestCaseFolder(ZephyrTestCaseFolder folder) {
         ZephyrProjectClientCache cache = useCache();
-        String url = String.format("%stestcasefolders", apiUrl);
+        String url = String.format("%sfolders", apiUrl);
         JsonObject object = Json.object()
                 .add("name", folder.getName())
-                .add("projectKey", projectKey)
-                .add("folderType", folder.getFolderType());
+                .add("projectKey", projectKey);
+        if (folder.getFolderType() == null) {
+            object.add("folderType", "TEST_CASE");
+        }
+        if (folder.getParentId() != null) {
+            object.add("parentId", folder.getParentId());
+        } else {
+            object.add("parentId", Json.NULL);
+        }
+
         try {
-            ApiResponse response = BasicApiClient.executePost(url, object.asString(), token);
+            ApiResponse response = BasicApiClient.executePost(url, object.toString(), token);
             int statusCode = response.getStatusCode();
             String responseBody = response.getBody();
             JsonObject jsonResponse = Json.parse(responseBody).asObject();
             if (statusCode >= 200 && statusCode < 300) {
-                ZephyrTestCaseFolder folder1 = getParserFunction(ZephyrTestCaseFolder.class).apply(jsonResponse.asObject(), cache);
+
+                ZephyrTestCaseFolder folder1 = ZephyrTestCaseFolder.builder()
+                        .id(jsonResponse.getLong("id", -1))
+                        .parentId(folder.getParentId())
+                        .folderType(folder.getFolderType())
+                        .path(resolvePath(jsonResponse.getLong("id", -1), cache.getFolders()))
+                        .name(folder.getName()).build();
                 return new CreateFolderResponse(statusCode, folder1, null);
             } else {
                 String errorMessage = jsonResponse.getString("message", "Cannot receive folders");
@@ -454,6 +497,12 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         @Override
         public NewTestCaseBuilder withFolderId(Long folderId) {
             builder.folderId(folderId);
+            return this;
+        }
+
+        @Override
+        public NewTestCaseBuilder withFolderPath(String folderPath) {
+            builder.path(folderPath);
             return this;
         }
 
@@ -648,9 +697,9 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
     }
 
     private void refreshAllCache() {
+        refreshProjectCache();
         refreshStatusesCache();
         refreshPrioritiesCache();
         refreshFoldersCache();
-        refreshProjectCache();
     }
 }
