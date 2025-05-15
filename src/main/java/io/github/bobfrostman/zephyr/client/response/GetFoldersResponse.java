@@ -1,7 +1,7 @@
-// io.github.bobfrostman.zephyr.client.response.GetFoldersResponse.java
 package io.github.bobfrostman.zephyr.client.response;
 
 import io.github.bobfrostman.zephyr.entity.ZephyrTestCaseFolder;
+
 import java.util.List;
 
 public class GetFoldersResponse {

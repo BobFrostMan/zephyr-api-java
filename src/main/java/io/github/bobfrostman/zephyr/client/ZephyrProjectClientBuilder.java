@@ -5,7 +5,6 @@ public class ZephyrProjectClientBuilder {
     private String apiUrl;
     private String token;
     private String projectKey;
-    private boolean verbose;
 
     public ZephyrProjectClientBuilder() {
 
@@ -26,12 +25,7 @@ public class ZephyrProjectClientBuilder {
         return this;
     }
 
-    public ZephyrProjectClientBuilder withVerbose(boolean verbose) {
-        this.verbose = verbose;
-        return this;
-    }
-
     public ZephyrProjectApiClient build() {
-        return new ZephyrProjectApiClient(apiUrl, token, projectKey, verbose);
+        return new ZephyrProjectApiClient(apiUrl, token, projectKey);
     }
 }

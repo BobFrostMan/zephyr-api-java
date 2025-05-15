@@ -4,7 +4,7 @@ import io.github.bobfrostman.zephyr.client.ZephyrProjectClientBuilder;
 
 public class ZephyrAPI {
 
-    public static ZephyrProjectClientBuilder createClient(){
+    public static ZephyrProjectClientBuilder createClient() {
         return new ZephyrProjectClientBuilder();
     }
 }

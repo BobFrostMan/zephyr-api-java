@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static io.github.bobfrostman.zephyr.client.BasicApiClient.setVerbose;
 import static io.github.bobfrostman.zephyr.client.ZephyrResponseParser.getParserFunction;
 import static io.github.bobfrostman.zephyr.client.ZephyrResponseParser.parseValues;
 
@@ -26,11 +25,10 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
 
     private ZephyrProjectClientCache clientCache;
 
-    ZephyrProjectApiClient(String url, String token, String projectKey, boolean verbose) {
+    ZephyrProjectApiClient(String url, String token, String projectKey) {
         this.apiUrl = url.endsWith("/") ? url : url + "/";
         this.token = token;
         this.projectKey = projectKey;
-        setVerbose(verbose);
     }
 
     @Override
@@ -53,21 +51,18 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                         if (stepsResponse.isSuccessful()) {
                             testCase.setSteps(stepsResponse.getTestScript().getSteps());
                         } else {
-                            // Логування або обробка помилки отримання степів для тесткейсу
-                            System.err.println(String.format("Не вдалося отримати степи для тесткейсу '%s': %s",
-                                    testCase.getKey(), stepsResponse.getErrorMessage()));
-                            // Вирішіть, чи потрібно продовжувати без степів у цьому випадку
+                            System.err.printf("Failed to fetch steps for testcase '%s': %s%n", testCase.getKey(), stepsResponse.getErrorMessage());
                         }
                     }
                     testCases.add(testCase);
                 }
                 return new GetTestCasesResponse(statusCode, testCases, null);
             } else {
-                String errorMessage = Json.parse(responseBody).asObject().getString("message", "Не вдалося отримати тесткейси");
+                String errorMessage = Json.parse(responseBody).asObject().getString("message", "Failed to receive testcases");
                 return new GetTestCasesResponse(statusCode, null, errorMessage);
             }
         } catch (IOException e) {
-            return new GetTestCasesResponse(-1, null, "Помилка при отриманні тесткейсів: " + e.getMessage());
+            return new GetTestCasesResponse(-1, null, "Error during testcases fetching: " + e.getMessage());
         }
     }
 
@@ -92,21 +87,16 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                     if (stepsResponse.isSuccessful()) {
                         testCase.setSteps(stepsResponse.getTestScript().getSteps());
                     } else {
-                        // Логування або обробка помилки отримання степів для тесткейсу
-                        System.err.println(String.format("Не вдалося отримати степи для тесткейсу '%s': %s",
-                                testCaseKey, stepsResponse.getErrorMessage()));
-                        // Вирішіть, чи потрібно повертати тесткейс без степів у цьому випадку
+                        System.err.printf("Failed to receive teststeps for testcase '%s': %s%n", testCaseKey, stepsResponse.getErrorMessage());
                     }
                 }
                 return new GetTestCaseResponse(statusCode, testCase, null);
             } else {
-                String errorMessage = Json.parse(responseBody).asObject().getString("message",
-                        String.format("Не вдалося отримати тесткейс '%s'", testCaseKey));
+                String errorMessage = Json.parse(responseBody).asObject().getString("message", String.format("Failed to fetch testcase '%s'", testCaseKey));
                 return new GetTestCaseResponse(statusCode, null, errorMessage);
             }
         } catch (IOException e) {
-            return new GetTestCaseResponse(-1, null,
-                    String.format("Помилка при отриманні тесткейсу '%s': %s", testCaseKey, e.getMessage()));
+            return new GetTestCaseResponse(-1, null, String.format("Error during testcase fetch '%s': %s", testCaseKey, e.getMessage()));
         }
     }
 
@@ -341,18 +331,46 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
 
     private UpdateTestCaseResponse updateTestCase(String testCaseKey, ZephyrTestCase testCase) {
         String url = String.format("%stestcases/%s", apiUrl, testCaseKey);
-        try {
-            // Аналогічно, testCase вже сконфігуровано
-            String requestBody = null;// Серіалізація testCase в JSON
-            if (true) {
-                throw new IOException();
-            }
-            //ApiResponse response = BasicApiClient.executePut(url, requestBody, token);
-            // ... обробка відповіді ...
-        } catch (IOException e) {
-            // ... обробка помилки ...
+        ZephyrProjectClientCache cache = useCache();
+        JsonObject object = Json.object()
+                .add("projectKey", testCase.getProjectKey())
+                .add("name", testCase.getName())
+                .add("objective", testCase.getObjective())
+                .add("priorityName", testCase.getPriorityName())
+                .add("statusName", testCase.getStatusName())
+                .add("labels", Json.parse(testCase.getLabels().toString()));
+        if (testCase.getFolderId() == null) {
+            Long folderId = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).toList().get(0).getId();
+            object.add("folderId", folderId);
         }
-        return null; // Заглушка
+        JsonObject customFields = Json.object();
+        for (Map.Entry<String, Object> entry : testCase.getCustomFields().entrySet()) {
+            object.add(entry.getKey(), String.valueOf(entry.getValue()));
+        }
+        object.add("customFields", customFields);
+        try {
+            ApiResponse response = BasicApiClient.executePut(url, object.asString(), token);
+            int statusCode = response.getStatusCode();
+            String responseBody = response.getBody();
+            JsonObject jsonResponse = Json.parse(responseBody).asObject();
+            if (statusCode >= 200 && statusCode < 300) {
+                ZephyrTestCase tc = getParserFunction(ZephyrTestCase.class).apply(jsonResponse.asObject(), cache);
+                if (testCase.getSteps() != null && !testCase.getSteps().isEmpty()) {
+                    CreateTestStepsResponse stepsResponse = createTestScript(tc.getKey(), "bdd", testCase.getSteps());
+                    if (!stepsResponse.isSuccessful()) {
+                        throw new RuntimeException("Cannot create test script steps: " + stepsResponse.getErrorMessage());
+                    } else {
+                        refreshFoldersCache();
+                    }
+                }
+                return new UpdateTestCaseResponse(statusCode, tc, null);
+            } else {
+                String errorMessage = jsonResponse.getString("message", "Cannot receive folders");
+                return new UpdateTestCaseResponse(statusCode, null, errorMessage);
+            }
+        } catch (IOException e) {
+            return new UpdateTestCaseResponse(-1, null, "Error during fetching folders: " + e.getMessage());
+        }
     }
 
     private CreateFolderResponse createTestCaseFolder(ZephyrTestCaseFolder folder) {
@@ -598,24 +616,23 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
     }
 
     private void refreshStatusesCache() {
-        GetStatusesResponse response = getStatuses(); // Цей метод тепер оновлює кеш, якщо дані отримано успішно
+        GetStatusesResponse response = getStatuses();
         if (!response.isSuccessful()) {
-            System.err.println("Помилка при оновленні кешу статусів: " + response.getErrorMessage());
-            // Можна розглянути інші способи обробки помилок
+            System.err.println("Failed to refresh cache for test cases statuses: " + response.getErrorMessage());
         }
     }
 
     private void refreshPrioritiesCache() {
         GetPrioritiesResponse response = getPriorities();
         if (!response.isSuccessful()) {
-            System.err.println("Помилка при оновленні кешу пріоритетів: " + response.getErrorMessage());
+            System.err.println("Failed to refresh cache for test cases priorities: " + response.getErrorMessage());
         }
     }
 
     private void refreshFoldersCache() {
         GetFoldersResponse response = getFolders();
         if (!response.isSuccessful()) {
-            System.err.println("Помилка при оновленні кешу папок: " + response.getErrorMessage());
+            System.err.println("Failed to refresh cache for test case folders: " + response.getErrorMessage());
         } else if (clientCache != null) {
             clientCache.setFoldersCache(response.getFolders());
         }
@@ -624,7 +641,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
     private void refreshProjectCache() {
         GetProjectResponse response = getProject();
         if (!response.isSuccessful()) {
-            System.err.println("Помилка при оновленні кешу проєкту: " + response.getErrorMessage());
+            System.err.println("Failed to refresh cache for project: " + response.getErrorMessage());
         } else if (clientCache != null) {
             clientCache.setProject(response.getProject());
         }

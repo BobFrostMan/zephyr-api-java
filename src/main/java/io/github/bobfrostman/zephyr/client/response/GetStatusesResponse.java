@@ -1,6 +1,7 @@
 package io.github.bobfrostman.zephyr.client.response;
 
 import io.github.bobfrostman.zephyr.entity.ZephyrTestCaseStatus;
+
 import java.util.List;
 
 public class GetStatusesResponse {

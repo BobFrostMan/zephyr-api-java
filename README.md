@@ -49,7 +49,7 @@ After a successful build, add the dependency to your project's pom.xml (if you a
 ```
 Or in your build.gradle (if you are using Gradle):
 ```gradle
-implementation 'io.github.bobfrostman:zephyr-scale-java-client:DEVELOPMENT-SNAPSHOT' // Replace with the actual version
+implementation 'io.github.bobfrostman:zephyr-scale-java-client:1.0.0' // Replace with the actual version
 ```
 
 ## Client Initialization
@@ -65,13 +65,11 @@ public class Example {
         String apiUrl = "YOUR_ZEPHYR_SCALE_API_URL";
         String token = "YOUR_ZEPHYR_SCALE_API_TOKEN";
         String projectKey = "YOUR_PROJECT_KEY";
-        boolean verbose = true; // Enable detailed logging (optional)
     
         IZephyrProjectApiClient client = new ZephyrProjectApiClientBuilder()
                 .withApiUrl(apiUrl)
                 .withToken(token)
                 .withProjectKey(projectKey)
-                .withVerbose(verbose)
                 .build();
 
         // You can now use 'client' to interact with the API

@@ -9,12 +9,6 @@ import java.nio.charset.StandardCharsets;
 
 public class BasicApiClient {
 
-    private static boolean verbose;
-
-    static void setVerbose(boolean isVerboseOutput) {
-        verbose = isVerboseOutput;
-    }
-
     static ApiResponse executeGet(String url, String bearerToken) throws IOException {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
@@ -28,15 +22,15 @@ public class BasicApiClient {
         return new ApiResponse(responseCode, responseBody);
     }
 
-     static ApiResponse executePost(String url, String requestBody, String bearerToken) throws IOException {
+    static ApiResponse executePost(String url, String requestBody, String bearerToken) throws IOException {
         return executeRequest("POST", url, requestBody, bearerToken);
     }
 
-     static ApiResponse executePut(String url, String requestBody, String bearerToken) throws IOException {
+    static ApiResponse executePut(String url, String requestBody, String bearerToken) throws IOException {
         return executeRequest("PUT", url, requestBody, bearerToken);
     }
 
-     static String executeDelete(String url, String bearerToken) throws IOException {
+    static String executeDelete(String url, String bearerToken) throws IOException {
         URL obj = new URL(url);
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
         con.setRequestMethod("DELETE");
@@ -50,7 +44,7 @@ public class BasicApiClient {
         HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 
         con.setRequestMethod(method);
-        con.setRequestProperty("Content-Type", "application/json"); // Or other content type
+        con.setRequestProperty("Content-Type", "application/json");
         con.setRequestProperty("Authorization", "Bearer " + bearerToken);
 
         con.setDoOutput(true);
