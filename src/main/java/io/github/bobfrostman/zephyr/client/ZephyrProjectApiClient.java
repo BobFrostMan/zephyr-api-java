@@ -1,8 +1,6 @@
 package io.github.bobfrostman.zephyr.client;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.*;
 import io.github.bobfrostman.zephyr.client.builder.NewFolderBuilder;
 import io.github.bobfrostman.zephyr.client.builder.NewTestCaseBuilder;
 import io.github.bobfrostman.zephyr.client.builder.UpdateTestCaseBuilder;
@@ -12,6 +10,7 @@ import io.github.bobfrostman.zephyr.entity.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -118,6 +117,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         if (response.isSuccessful()) {
             ZephyrTestCase tc = response.getTestCase();
             return new ConcreteUpdateTestCaseBuilder(testCaseKey)
+                    .withId(tc.getId())
                     .withName(tc.getName())
                     .withObjective(tc.getObjective())
                     .withFolderId(tc.getFolderId())
@@ -138,7 +138,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         if (cache != null && cache.getStatuses() != null && !cache.getStatuses().isEmpty()) {
             return new GetStatusesResponse(200, cache.getStatuses(), null);
         }
-        String url = String.format(PROJECT_REQUEST_PARAMS, apiUrl, "statuses", projectKey);
+        String url = String.format(PROJECT_REQUEST_PARAMS, apiUrl, "statuses", projectKey) + "&statusType=TEST_CASE";
         try {
             ApiResponse response = BasicApiClient.executeGet(url, token);
             int statusCode = response.getStatusCode();
@@ -331,6 +331,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
             JsonObject jsonResponse = Json.parse(responseBody).asObject();
             if (statusCode >= 200 && statusCode < 300) {
                 ZephyrTestCase tc = ZephyrTestCase.builder()
+                        .id(jsonResponse.getLong("id", -1))
                         .key(jsonResponse.getString("key"))
                         .name(testCase.getName())
                         .projectKey(projectKey)
@@ -371,40 +372,44 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         String url = String.format("%stestcases/%s", apiUrl, testCaseKey);
         ZephyrProjectClientCache cache = useCache();
         JsonObject object = Json.object()
-                .add("projectKey", testCase.getProjectKey())
+                .add("key", testCaseKey)
+                .add("id", testCase.getId())
+                .add("project", Json.object().add("id", cache.getProject().getId()))
                 .add("name", testCase.getName())
                 .add("objective", testCase.getObjective())
-                .add("priorityName", testCase.getPriorityName())
-                .add("statusName", testCase.getStatusName())
+                .add("priority", Json.object().add("id", cache.getPriorities().stream().filter(p -> p.getName().equals(testCase.getPriorityName())).toList().get(0).getId()))
+                .add("status", Json.object().add("id", cache.getStatuses().stream().filter(s -> s.getName().equals(testCase.getStatusName())).toList().get(0).getId()))
                 .add("labels", Json.parse(testCase.getLabels().toString()));
         if (testCase.getFolderId() == null) {
             Long folderId = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).toList().get(0).getId();
-            object.add("folderId", folderId);
+            object.add("folder", Json.object().add("id", folderId));
+        } else {
+            object.add("folder", Json.object().add("id", testCase.getFolderId()));
         }
-        JsonObject customFields = Json.object();
-        for (Map.Entry<String, Object> entry : testCase.getCustomFields().entrySet()) {
-            object.add(entry.getKey(), String.valueOf(entry.getValue()));
+
+        if (testCase.getCustomFields() != null) {
+            object.add("customFields", toJsonCustomFields(testCase.getCustomFields()));
+        } else {
+            object.add("customFields", Json.NULL);
         }
-        object.add("customFields", customFields);
         try {
             ApiResponse response = BasicApiClient.executePut(url, object.toString(), token);
             int statusCode = response.getStatusCode();
             String responseBody = response.getBody();
-            JsonObject jsonResponse = Json.parse(responseBody).asObject();
             if (statusCode >= 200 && statusCode < 300) {
-                ZephyrTestCase tc = getParserFunction(ZephyrTestCase.class).apply(jsonResponse.asObject(), cache);
+                ZephyrTestCase tc = getTestCase(testCaseKey).getTestCase();
                 if (testCase.getSteps() != null && !testCase.getSteps().isEmpty()) {
                     CreateTestStepsResponse stepsResponse = createTestScript(tc.getKey(), "bdd", testCase.getSteps());
                     if (!stepsResponse.isSuccessful()) {
                         throw new RuntimeException("Cannot create test script steps: " + stepsResponse.getErrorMessage());
                     } else {
+                        tc.setSteps(getTestSteps(tc.getKey()).getTestScript().getSteps());
                         refreshFoldersCache();
                     }
                 }
                 return new UpdateTestCaseResponse(statusCode, tc, null);
             } else {
-                String errorMessage = jsonResponse.getString("message", "Cannot receive folders");
-                return new UpdateTestCaseResponse(statusCode, null, errorMessage);
+                return new UpdateTestCaseResponse(statusCode, null, responseBody);
             }
         } catch (IOException e) {
             return new UpdateTestCaseResponse(-1, null, "Error during fetching folders: " + e.getMessage());
@@ -436,7 +441,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                         .id(jsonResponse.getLong("id", -1))
                         .parentId(folder.getParentId())
                         .folderType(folder.getFolderType())
-                        .path(resolvePath(jsonResponse.getLong("id", -1), cache.getFolders()))
+                        .path(resolveTestCaseFolderPath(jsonResponse.getLong("id", -1), cache.getFoldersAsMap()))
                         .name(folder.getName()).build();
                 return new CreateFolderResponse(statusCode, folder1, null);
             } else {
@@ -551,6 +556,12 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         public ConcreteUpdateTestCaseBuilder(String testCaseKey) {
             this.testCaseKey = testCaseKey;
             this.builder = ZephyrTestCase.builder().key(testCaseKey);
+        }
+
+        @Override
+        public UpdateTestCaseBuilder withId(Long id) {
+            builder.id(id);
+            return this;
         }
 
         @Override
@@ -692,6 +703,11 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
             System.err.println("Failed to refresh cache for test case folders: " + response.getErrorMessage());
         } else if (clientCache != null) {
             clientCache.setFoldersCache(response.getFolders());
+            Map<Long, ZephyrTestCaseFolder> folderMap = new HashMap<>();
+            for (ZephyrTestCaseFolder folder : response.getFolders()) {
+                folderMap.put(folder.getId(), folder);
+            }
+            clientCache.setFoldersMapCache(folderMap);
         }
     }
 
@@ -710,4 +726,45 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         refreshPrioritiesCache();
         refreshFoldersCache();
     }
+
+    static JsonObject toJsonCustomFields(Map<String, Object> customFieldsMap) {
+        JsonObject customFieldsJson = new JsonObject();
+        if (customFieldsMap != null) {
+            for (Map.Entry<String, Object> entry : customFieldsMap.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                customFieldsJson.add(key, convertJavaObjectToJsonValue(value));
+            }
+        }
+        return customFieldsJson;
+    }
+
+    private static JsonValue convertJavaObjectToJsonValue(Object obj) {
+        if (obj == null) {
+            return JsonValue.NULL;
+        } else if (obj instanceof String) {
+            return Json.value((String) obj);
+        } else if (obj instanceof Integer) {
+            return Json.value((Integer) obj);
+        } else if (obj instanceof Long) {
+            return Json.value((Long) obj);
+        } else if (obj instanceof Double) {
+            return Json.value((Double) obj);
+        } else if (obj instanceof Float) {
+            return Json.value((Float) obj);
+        } else if (obj instanceof Boolean) {
+            return Json.value((Boolean) obj);
+        } else if (obj instanceof List) {
+            JsonArray jsonArray = new JsonArray();
+            for (Object item : (List<?>) obj) {
+                jsonArray.add(convertJavaObjectToJsonValue(item));
+            }
+            return jsonArray;
+        } else if (obj instanceof Map) {
+            return toJsonCustomFields((Map<String, Object>) obj);
+        } else {
+            return Json.value(obj.toString());
+        }
+    }
+
 }

@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface UpdateTestCaseBuilder {
+
+    UpdateTestCaseBuilder withId(Long id);
+
     UpdateTestCaseBuilder withName(String name);
 
     UpdateTestCaseBuilder withObjective(String objective);

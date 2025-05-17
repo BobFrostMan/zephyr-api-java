@@ -91,23 +91,58 @@ import io.github.bobfrostman.zephyr.entity.ZephyrTestCaseStatus;
 ```
 
 ### Creating a New Test Case with Steps
+Creates a new testcase in specified folder. 
+Folder can be specified by folderId, or folderPath. If folder path doesn't exist it will be created.
+
 ```java
 import io.github.bobfrostman.zephyr.client.response.CreateTestCaseResponse;
 
     // ... (client initialization) ...
-    
-    CreateTestCaseResponse createResponse = client.newTestCase("YOUR_PROJECT_KEY")
-        .withName("My New Test Case")
-        .withObjective("Verify important functionality")
-        .withPrecondition("Environment needs to be set up")
-        .withStep("Step 1: Perform action X")
-        .withStep("Step 2: Verify that result Y is as expected")
-        .create();
-        
+    CreateTestCaseResponse createResponse = client.newTestCase()
+            .withFolderPath("/folder/one more folder/Autocreated Folder/")
+            .withName("Auto Test Case")
+            .withObjective("Verify important functionality")
+            .withPrecondition("Environment needs to be set up")
+            .withStatusName("Approved")
+            .withPriorityName("High")
+            .withStep("Given Perform action X")
+            .withStep("Then Verify that result Y is as expected")
+            .create();
+
     if (createResponse.isSuccessful()) {
         System.out.println("Test case created successfully with ID: " + createResponse.getCreatedTestCase().getKey());
     } else {
         System.err.println("Failed to create test case: " + createResponse.getErrorMessage());
+    }
+
+```
+### Update existing Test Case 
+Please take into account that for each non-specified field the value will be cleared. 
+
+If the project has test case custom fields, all custom fields should be present in the request. To leave any of them blank, please set them null if they are not required custom fields.
+```java
+import io.github.bobfrostman.zephyr.client.response.UpdateTestCaseResponse;
+import io.github.bobfrostman.zephyr.entity.ZephyrTestCase;
+
+    // ... (client initialization) ...
+    UpdateTestCaseResponse updateTestCaseResponse = client.updateTestCase(testCaseKey).withName("Another name")
+            .withStep("Given steps overridden")
+            .withPriorityName("Low")
+            .withStatusName("Draft")
+            .withObjective("Modify test")
+            .withCustomFields(customFields)
+            .update();
+    if (updateTestCaseResponse.isSuccessful()) {
+        ZephyrTestCase testCase = updateTestCaseResponse.getUpdatedTestCase();
+        System.out.println("Test Case Name: " + testCase.getName());
+        if (testCase.getSteps() != null) {
+            System.out.println("Steps:");
+            for (String step : testCase.getSteps()) {
+                System.out.println("- " + step);
+            }
+        }
+    }  else {
+        System.err.println("Failed to retrieve updated test case: " + updateTestCaseResponse.getErrorMessage());
     }
 ```
 
@@ -152,10 +187,9 @@ import io.github.bobfrostman.zephyr.client.response.CreateFolderResponse;
     }
 ```
 ## Future Plans
-- Support for other Zephyr Scale API endpoints (test executions, reports, etc.).
+- Support for other Zephyr Scale API endpoints (test executions, test plans, etc.).
 - Additional client configuration options (timeouts, retry policy).
 - More flexible cache management.
-- Javadoc documentation.
 
 ## Contributing
 Contributions to the project are welcome! You can help by reporting bugs, suggesting new features, or submitting pull requests with your changes.

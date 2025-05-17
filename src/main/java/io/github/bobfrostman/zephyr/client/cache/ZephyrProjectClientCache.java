@@ -6,7 +6,9 @@ import io.github.bobfrostman.zephyr.entity.ZephyrTestCasePriority;
 import io.github.bobfrostman.zephyr.entity.ZephyrTestCaseStatus;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ZephyrProjectClientCache {
 
@@ -14,11 +16,13 @@ public class ZephyrProjectClientCache {
     private List<ZephyrTestCasePriority> prioritiesCache;
     private List<ZephyrTestCaseStatus> statusesCache;
     private List<ZephyrTestCaseFolder> foldersCache;
+    private Map<Long, ZephyrTestCaseFolder> foldersMapCache;
 
     public ZephyrProjectClientCache() {
         statusesCache = new ArrayList<>();
         prioritiesCache = new ArrayList<>();
         foldersCache = new ArrayList<>();
+        foldersMapCache = new HashMap<>();
     }
 
     public void setProject(ZephyrProject project) {
@@ -52,4 +56,13 @@ public class ZephyrProjectClientCache {
     public void setFoldersCache(List<ZephyrTestCaseFolder> foldersCache) {
         this.foldersCache = foldersCache;
     }
+
+    public Map<Long, ZephyrTestCaseFolder> getFoldersAsMap(){
+        return foldersMapCache;
+    }
+
+    public void setFoldersMapCache(Map<Long, ZephyrTestCaseFolder> foldersMapCache) {
+        this.foldersMapCache = foldersMapCache;
+    }
+
 }

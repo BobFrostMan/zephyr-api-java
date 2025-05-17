@@ -1,0 +1,7 @@
+com.eclipsesource.json
+io.github.bobfrostman.zephyr
+io.github.bobfrostman.zephyr.client
+io.github.bobfrostman.zephyr.client.builder
+io.github.bobfrostman.zephyr.client.cache
+io.github.bobfrostman.zephyr.client.response
+io.github.bobfrostman.zephyr.entity

@@ -4,6 +4,7 @@ import java.util.*;
 
 public class ZephyrTestCase {
 
+    private Long id;
     private String key;
     private String name;
     private String projectKey;
@@ -18,6 +19,7 @@ public class ZephyrTestCase {
     private Map<String, Object> customFields;
 
     private ZephyrTestCase(Builder builder) {
+        this.id = builder.id;
         this.key = builder.key;
         this.name = builder.name;
         this.projectKey = builder.projectKey;
@@ -84,11 +86,16 @@ public class ZephyrTestCase {
         return customFields;
     }
 
+    public Long getId() {
+        return id;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
 
     public static class Builder {
+        private Long id;
         private String key;
         private String name;
         private String projectKey;
@@ -101,6 +108,11 @@ public class ZephyrTestCase {
         private Long folderId;
         private List<String> steps = new ArrayList<>();
         private Map<String, Object> customFields = new HashMap<>();
+
+        public Builder id(Long id) {
+            this.id = id;
+            return this;
+        }
 
         public Builder key(String key) {
             this.key = key;
@@ -182,34 +194,4 @@ public class ZephyrTestCase {
         }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ZephyrTestCase testCase = (ZephyrTestCase) o;
-        return Objects.equals(key, testCase.key) && Objects.equals(name, testCase.name) && Objects.equals(projectKey, testCase.projectKey) && Objects.equals(objective, testCase.objective) && Objects.equals(precondition, testCase.precondition) && Objects.equals(labels, testCase.labels) && Objects.equals(priorityName, testCase.priorityName) && Objects.equals(statusName, testCase.statusName) && Objects.equals(path, testCase.path) && Objects.equals(folderId, testCase.folderId) && Objects.equals(steps, testCase.steps) && Objects.equals(customFields, testCase.customFields);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(key, name, projectKey, objective, precondition, labels, priorityName, statusName, path, folderId, steps, customFields);
-    }
-
-    @Override
-    public String toString() {
-        return "ZephyrTestCase{" +
-                "key='" + key + '\'' +
-                ", name='" + name + '\'' +
-                ", projectKey='" + projectKey + '\'' +
-                ", objective='" + objective + '\'' +
-                ", precondition='" + precondition + '\'' +
-                ", labels=" + labels +
-                ", priorityName='" + priorityName + '\'' +
-                ", statusName='" + statusName + '\'' +
-                ", path='" + path + '\'' +
-                ", folderId=" + folderId +
-                ", steps=" + steps +
-                ", customFields=" + customFields +
-                '}';
-    }
 }

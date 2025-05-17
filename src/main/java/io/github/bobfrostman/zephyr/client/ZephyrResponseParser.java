@@ -1,6 +1,5 @@
 package io.github.bobfrostman.zephyr.client;
 
-import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
@@ -50,9 +49,10 @@ public class ZephyrResponseParser {
         final long folderId = jsonResponseObject.get("folder").isNull() ? -1 : jsonResponseObject.get("folder").asObject().getLong("id", -1);
         String priorityName = priorityId != -1 ? cache.getPriorities().stream().filter(item -> item.getId() == priorityId).toList().get(0).getName() : null;
         String statusName = statusId != -1 ? cache.getStatuses().stream().filter(item -> item.getId() == statusId).toList().get(0).getName() : null;
-        String path = folderId != -1 ? resolvePath(folderId, cache.getFolders()) : null;
+        String path = folderId != -1 ? resolveTestCaseFolderPath(folderId, cache.getFoldersAsMap()) : null;
         List<String> labels = jsonResponseObject.get("labels").asArray().values().stream().map(JsonValue::asString).toList();
         return ZephyrTestCase.builder()
+                .id(jsonResponseObject.getLong("id", -1))
                 .key(jsonResponseObject.getString("key"))
                 .projectKey(cache.getProject().getKey())
                 .name(jsonResponseObject.getString("name"))
@@ -98,7 +98,7 @@ public class ZephyrResponseParser {
             if (cache == null) {
                 folder.setPath(null);
             } else {
-                folder.setPath(resolvePath(folder.getId(), cache.getFolders()));
+                folder.setPath(resolveTestCaseFolderPath(folder.getId(), cache.getFoldersAsMap()));
             }
         }
         folder.setFolderType(jsonFolderObject.getString("folderType"));
@@ -120,7 +120,9 @@ public class ZephyrResponseParser {
         script.setId(jsonScriptObject.getLong("id", -1));
         script.setType(jsonScriptObject.getString("type"));
         if (!jsonScriptObject.get("text").isNull()) {
-            script.setSteps(Arrays.stream(jsonScriptObject.getString("text").split("\\n")).toList());
+            List<String> list = new ArrayList<>();
+            list.addAll(Arrays.asList(jsonScriptObject.getString("text").split("\\n")));
+            script.setSteps(list);
         }
         return script;
     }
@@ -129,30 +131,23 @@ public class ZephyrResponseParser {
         Map<String, Object> customFields = new HashMap<>();
         for (int i = 0; i < jsonCustomFieldsObject.names().size(); i++) {
             String name = jsonCustomFieldsObject.names().get(i);
-            customFields.put(name, jsonCustomFieldsObject.get(name).toString());
+            customFields.put(name, jsonCustomFieldsObject.get(name));
         }
         return customFields;
     }
 
-    static String resolvePath(Long tcFolderId, List<ZephyrTestCaseFolder> folders) {
-        if (tcFolderId != null) {
-            List<ZephyrTestCaseFolder> filteredFolders = folders.stream().filter(item -> tcFolderId.equals(item.getId())).toList();
-            if (filteredFolders.isEmpty()) {
-                return resolvePath(null, folders);
-            } else {
-                paths.add(filteredFolders.get(0).getName());
-                return resolvePath(filteredFolders.get(0).getParentId(), folders);
-            }
-        } else {
-            StringBuilder builder = new StringBuilder();
-            builder.append("/");
-            for (int i = paths.size() - 1; i >= 0; i--) {
-                builder.append(paths.get(i));
-                builder.append("/");
-            }
-            String result = builder.toString();
-            paths.clear();
-            return result;
+    static String resolveTestCaseFolderPath(Long folderId, Map<Long, ZephyrTestCaseFolder> foldersMap) {
+        if (folderId == null || folderId == -1) {
+            return "/";
         }
+        LinkedList<String> pathSegments = new LinkedList<>();
+
+        Long currentFolderId = folderId;
+        while (currentFolderId != null && foldersMap.containsKey(currentFolderId)) {
+            ZephyrTestCaseFolder currentFolder = foldersMap.get(currentFolderId);
+            pathSegments.addFirst(currentFolder.getName());
+            currentFolderId = currentFolder.getParentId();
+        }
+        return String.join("/", pathSegments);
     }
 }
