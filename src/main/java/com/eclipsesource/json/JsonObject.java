@@ -818,7 +818,7 @@ public class JsonObject extends JsonValue implements Iterable<Member> {
          * </p>
          *
          * @param object the object to be compared with this JsonObject
-         * @return <tt>true</tt> if the specified object is equal to this JsonObject, <code>false</code>
+         * @return true if the specified object is equal to this JsonObject, <code>false</code>
          * otherwise
          */
         @Override

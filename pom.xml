@@ -36,8 +36,7 @@
     </scm>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -55,6 +54,9 @@
                         <goals>
                             <goal>jar</goal>
                         </goals>
+                        <configuration>
+                            <failOnWarnings>false</failOnWarnings>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -93,7 +95,7 @@
                         <id>attach-sources</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>jar</goal>
+                            <goal>jar-no-fork</goal>
                         </goals>
                     </execution>
                 </executions>
