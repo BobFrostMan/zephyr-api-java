@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.github.bobfrostman.zephyr.client.ZephyrResponseParser.*;
 
@@ -297,7 +298,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                 .add("statusName", testCase.getStatusName())
                 .add("labels", Json.parse(testCase.getLabels().toString()));
         if (testCase.getFolderId() == null) {
-            List<ZephyrTestCaseFolder> folderList = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).toList();
+            List<ZephyrTestCaseFolder> folderList = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).collect(Collectors.toList());
             if (!folderList.isEmpty()) {
                 Long folderId = folderList.get(0).getId();
                 object.add("folderId", folderId);
@@ -364,7 +365,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
     }
 
     private Long getFolderByName(String name, ZephyrProjectClientCache cache) {
-        List<ZephyrTestCaseFolder> folders = cache.getFolders().stream().filter(folder -> folder.getName().equals(name)).toList();
+        List<ZephyrTestCaseFolder> folders = cache.getFolders().stream().filter(folder -> folder.getName().equals(name)).collect(Collectors.toList());
         return folders.isEmpty() ? null : folders.get(0).getId();
     }
 
@@ -377,11 +378,11 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                 .add("project", Json.object().add("id", cache.getProject().getId()))
                 .add("name", testCase.getName())
                 .add("objective", testCase.getObjective())
-                .add("priority", Json.object().add("id", cache.getPriorities().stream().filter(p -> p.getName().equals(testCase.getPriorityName())).toList().get(0).getId()))
-                .add("status", Json.object().add("id", cache.getStatuses().stream().filter(s -> s.getName().equals(testCase.getStatusName())).toList().get(0).getId()))
+                .add("priority", Json.object().add("id", cache.getPriorities().stream().filter(p -> p.getName().equals(testCase.getPriorityName())).collect(Collectors.toList()).get(0).getId()))
+                .add("status", Json.object().add("id", cache.getStatuses().stream().filter(s -> s.getName().equals(testCase.getStatusName())).collect(Collectors.toList()).get(0).getId()))
                 .add("labels", Json.parse(testCase.getLabels().toString()));
         if (testCase.getFolderId() == null) {
-            Long folderId = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).toList().get(0).getId();
+            Long folderId = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).collect(Collectors.toList()).get(0).getId();
             object.add("folder", Json.object().add("id", folderId));
         } else {
             object.add("folder", Json.object().add("id", testCase.getFolderId()));

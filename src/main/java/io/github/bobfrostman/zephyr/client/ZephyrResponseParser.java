@@ -9,6 +9,7 @@ import io.github.bobfrostman.zephyr.entity.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public class ZephyrResponseParser {
 
@@ -47,10 +48,10 @@ public class ZephyrResponseParser {
         final long priorityId = jsonResponseObject.get("priority").asObject().getLong("id", -1);
         final long statusId = jsonResponseObject.get("status").asObject().getLong("id", -1);
         final long folderId = jsonResponseObject.get("folder").isNull() ? -1 : jsonResponseObject.get("folder").asObject().getLong("id", -1);
-        String priorityName = priorityId != -1 ? cache.getPriorities().stream().filter(item -> item.getId() == priorityId).toList().get(0).getName() : null;
-        String statusName = statusId != -1 ? cache.getStatuses().stream().filter(item -> item.getId() == statusId).toList().get(0).getName() : null;
+        String priorityName = priorityId != -1 ? cache.getPriorities().stream().filter(item -> item.getId() == priorityId).collect(Collectors.toList()).get(0).getName() : null;
+        String statusName = statusId != -1 ? cache.getStatuses().stream().filter(item -> item.getId() == statusId).collect(Collectors.toList()).get(0).getName() : null;
         String path = folderId != -1 ? resolveTestCaseFolderPath(folderId, cache.getFoldersAsMap()) : null;
-        List<String> labels = jsonResponseObject.get("labels").asArray().values().stream().map(JsonValue::asString).toList();
+        List<String> labels = jsonResponseObject.get("labels").asArray().values().stream().map(JsonValue::asString).collect(Collectors.toList());
         return ZephyrTestCase.builder()
                 .id(jsonResponseObject.getLong("id", -1))
                 .key(jsonResponseObject.getString("key"))
