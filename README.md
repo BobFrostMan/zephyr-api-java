@@ -3,8 +3,8 @@ This project provides a simple and convenient Java client for interacting with t
 It is designed to simplify the integration of your Java applications (mainly test automation frameworks) with Zephyr, allowing you to programmatically manage test cases, folders, statuses, priorities, and other resources.
 
 ## Motivation
-I didn't find user-friendly not overloaded with internal entities and api logic client for simple Zephyr.
-So it's an attempt to design simple client for Zephyr without additional headache. 
+I didn't find user-friendly not overloaded with internal entities and api logic client for simple Zephyr actions.
+So it's an attempt to design a simple client for Zephyr without additional headache. 
 
 [Zephyr API documentation available here.](https://support.smartbear.com/zephyr-scale-cloud/api-docs/#section/Authentication/Generate-a-Key)
 
