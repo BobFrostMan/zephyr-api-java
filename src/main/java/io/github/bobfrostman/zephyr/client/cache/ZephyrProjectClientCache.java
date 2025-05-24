@@ -57,7 +57,7 @@ public class ZephyrProjectClientCache {
         this.foldersCache = foldersCache;
     }
 
-    public Map<Long, ZephyrTestCaseFolder> getFoldersAsMap(){
+    public Map<Long, ZephyrTestCaseFolder> getFoldersAsMap() {
         return foldersMapCache;
     }
 

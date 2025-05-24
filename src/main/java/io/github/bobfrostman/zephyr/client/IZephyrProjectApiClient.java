@@ -11,6 +11,10 @@ public interface IZephyrProjectApiClient {
 
     GetTestCasesResponse getTestCases(boolean includeSteps);
 
+    GetTestCasesResponse getTestCases(String folder);
+
+    GetTestCasesResponse getTestCases(String folder, boolean includeSteps);
+
     GetTestCaseResponse getTestCase(String testCaseKey);
 
     GetTestCaseResponse getTestCase(String testCaseKey, boolean includeSteps);

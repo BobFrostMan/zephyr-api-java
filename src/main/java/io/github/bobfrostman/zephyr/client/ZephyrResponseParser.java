@@ -7,14 +7,12 @@ import io.github.bobfrostman.zephyr.client.cache.ZephyrProjectClientCache;
 import io.github.bobfrostman.zephyr.entity.*;
 
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class ZephyrResponseParser {
 
     private static final Map<Class<?>, BiFunction<JsonObject, ZephyrProjectClientCache, ?>> PARSER_MAP = new HashMap<>();
-    private static List<String> paths = new CopyOnWriteArrayList<>();
 
     static {
         PARSER_MAP.put(ZephyrTestCase.class, ZephyrResponseParser::parseTestCase);
@@ -91,14 +89,12 @@ public class ZephyrResponseParser {
         folder.setFolderType(jsonFolderObject.getString("folderType"));
         folder.setId(jsonFolderObject.getLong("id", -1));
         folder.setName(jsonFolderObject.getString("name"));
-        if (jsonFolderObject.get("parentId").isNull()) {
-            folder.setParentId(null);
-            folder.setPath("/" + folder.getName() + "/");
-        } else {
-            folder.setParentId(jsonFolderObject.getLong("parentId", -1));
-            if (cache == null) {
-                folder.setPath(null);
+        if (!cache.getFoldersAsMap().isEmpty()) {
+            if (jsonFolderObject.get("parentId").isNull()) {
+                folder.setParentId(null);
+                folder.setPath("/" + folder.getName() + "/");
             } else {
+                folder.setParentId(jsonFolderObject.getLong("parentId", -1));
                 folder.setPath(resolveTestCaseFolderPath(folder.getId(), cache.getFoldersAsMap()));
             }
         }
@@ -149,6 +145,6 @@ public class ZephyrResponseParser {
             pathSegments.addFirst(currentFolder.getName());
             currentFolderId = currentFolder.getParentId();
         }
-        return String.join("/", pathSegments);
+        return "/" + String.join("/", pathSegments);
     }
 }
