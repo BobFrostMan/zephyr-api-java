@@ -455,6 +455,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                         .folderType(folder.getFolderType())
                         .path(resolveTestCaseFolderPath(jsonResponse.getLong("id", -1), cache.getFoldersAsMap()))
                         .name(folder.getName()).build();
+                refreshFoldersCache();
                 return new CreateFolderResponse(statusCode, folder1, null);
             } else {
                 String errorMessage = jsonResponse.getString("message", "Cannot receive folders");
