@@ -320,7 +320,7 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                     if (name.isEmpty()) {
                         continue;
                     }
-                    Long id = getFolderByName(name, cache);
+                    Long id = getFolderByName(name, parentId, cache);
                     if (id == null) {
                         id = createTestCaseFolder(ZephyrTestCaseFolder.builder().name(name).parentId(parentId).build()).getCreatedFolder().getId();
                     }
@@ -375,9 +375,18 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         }
     }
 
-    private Long getFolderByName(String name, ZephyrProjectClientCache cache) {
-        List<ZephyrTestCaseFolder> folders = cache.getFolders().stream().filter(folder -> folder.getName().equals(name)).collect(Collectors.toList());
-        return folders.isEmpty() ? null : folders.get(0).getId();
+    private Long getFolderByName(String name, Long parentId, ZephyrProjectClientCache cache) {
+        for (ZephyrTestCaseFolder folder : cache.getFolders()) {
+            if (folder.getName().equals(name)) {
+                if (parentId != null && parentId.equals(folder.getParentId())) {
+                    return folder.getId();
+                }
+                if (parentId == null && folder.getParentId() == null) {
+                    return folder.getId();
+                }
+            }
+        }
+        return null;
     }
 
     private UpdateTestCaseResponse updateTestCase(String testCaseKey, ZephyrTestCase testCase) {
