@@ -38,12 +38,12 @@ Add the dependency to your project's pom.xml (if you are using Maven):
 <dependency>
     <groupId>io.github.bobfrostman</groupId>
     <artifactId>zephyr-scale-java-client</artifactId>
-    <version>1.1.2</version>
+    <version>1.2.0</version>
 </dependency>
 ```
 Or in your build.gradle (if you are using Gradle):
 ```gradle
-implementation 'io.github.bobfrostman:zephyr-scale-java-client:1.1.2' // Replace with the actual version
+implementation 'io.github.bobfrostman:zephyr-scale-java-client:1.2.0' // Replace with the actual version
 ```
 
 ## Client Initialization
@@ -105,8 +105,8 @@ import io.github.bobfrostman.zephyr.client.response.CreateTestCaseResponse;
             .withPrecondition("Environment needs to be set up")
             .withStatusName("Approved")
             .withPriorityName("High")
-            .withStep("Given Perform action X")
-            .withStep("Then Verify that result Y is as expected")
+            .addStep("Given Perform action X")
+            .addStep("Then Verify that result Y is as expected")
             .create();
 
     if (createResponse.isSuccessful()) {
@@ -126,7 +126,7 @@ import io.github.bobfrostman.zephyr.entity.ZephyrTestCase;
 
     // ... (client initialization) ...
     UpdateTestCaseResponse updateTestCaseResponse = client.updateTestCase(testCaseKey).withName("Another name")
-            .withStep("Given steps overridden")
+            .addStep("Given steps overridden")
             .withPriorityName("Low")
             .withStatusName("Draft")
             .withObjective("Modify test")
@@ -171,6 +171,8 @@ import io.github.bobfrostman.zephyr.entity.ZephyrTestCase;
 ```
 
 ### Creating a New Folder
+Creating folder for testcases happens automatically during TestCase creation. 
+However, you can use a separate method for this action.
 ```java
 import io.github.bobfrostman.zephyr.client.response.CreateFolderResponse;
 

@@ -25,6 +25,14 @@ public interface UpdateTestCaseBuilder {
 
     UpdateTestCaseBuilder withFolderId(Long folderId);
 
+    UpdateTestCaseBuilder withFolderPath(String folderPath);
+
+    UpdateTestCaseBuilder addStep(String step);
+
+    /**
+     * use addStepInstead
+     */
+    @Deprecated
     UpdateTestCaseBuilder withStep(String step);
 
     UpdateTestCaseBuilder withSteps(List<String> steps);
