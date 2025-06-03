@@ -6,7 +6,7 @@
 
     <groupId>io.github.bobfrostman</groupId>
     <artifactId>zephyr-api-java</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <packaging>jar</packaging>
 
     <name>zephyr-api-java</name>

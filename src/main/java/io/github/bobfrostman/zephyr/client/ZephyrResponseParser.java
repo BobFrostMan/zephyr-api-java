@@ -17,7 +17,6 @@ public class ZephyrResponseParser {
     static {
         PARSER_MAP.put(ZephyrTestCase.class, ZephyrResponseParser::parseTestCase);
         PARSER_MAP.put(ZephyrTestCaseStatus.class, ZephyrResponseParser::parseStatus);
-        PARSER_MAP.put(ZephyrTestCaseFolder.class, ZephyrResponseParser::parseFolder);
         PARSER_MAP.put(ZephyrTestCasePriority.class, ZephyrResponseParser::parsePriority);
         PARSER_MAP.put(ZephyrTestScript.class, ZephyrResponseParser::parseTestScript);
         PARSER_MAP.put(ZephyrProject.class, ZephyrResponseParser::parseProject);
@@ -84,22 +83,19 @@ public class ZephyrResponseParser {
         return priority;
     }
 
-    static ZephyrTestCaseFolder parseFolder(JsonObject jsonFolderObject, ZephyrProjectClientCache cache) {
-        ZephyrTestCaseFolder folder = new ZephyrTestCaseFolder();
-        folder.setFolderType(jsonFolderObject.getString("folderType"));
-        folder.setId(jsonFolderObject.getLong("id", -1));
-        folder.setName(jsonFolderObject.getString("name"));
-        if (!cache.getFoldersAsMap().isEmpty()) {
-            if (jsonFolderObject.get("parentId").isNull()) {
-                folder.setParentId(null);
-                folder.setPath("/" + folder.getName() + "/");
-            } else {
-                folder.setParentId(jsonFolderObject.getLong("parentId", -1));
-                folder.setPath(resolveTestCaseFolderPath(folder.getId(), cache.getFoldersAsMap()));
-            }
+    static List<ZephyrTestCaseFolder> parseFolders(JsonArray jsonArray) {
+        List<ZephyrTestCaseFolder> result = new ArrayList<>();
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonObject jsonFolderObject = jsonArray.get(i).asObject();
+            ZephyrTestCaseFolder folder = new ZephyrTestCaseFolder();
+            folder.setFolderType(jsonFolderObject.getString("folderType"));
+            folder.setId(jsonFolderObject.getLong("id", -1));
+            folder.setName(jsonFolderObject.getString("name"));
+            folder.setParentId(jsonFolderObject.get("parentId").isNull() ? null : jsonFolderObject.getLong("parentId", -1));
+            folder.setPath(resolveFolderPath(jsonFolderObject, jsonArray));
+            result.add(folder);
         }
-        folder.setFolderType(jsonFolderObject.getString("folderType"));
-        return folder;
+        return result;
     }
 
     static ZephyrTestCaseStatus parseStatus(JsonObject jsonStatusObject, ZephyrProjectClientCache cache) {
@@ -147,4 +143,29 @@ public class ZephyrResponseParser {
         }
         return "/" + String.join("/", pathSegments);
     }
+
+    static String resolveFolderPath(JsonObject jsonFolderObject, JsonArray jsonArray) {
+        String name = jsonFolderObject.getString("name");
+        String jsonPath = "/" + name + "/";
+        JsonObject parent = getParentById(jsonFolderObject.get("parentId").isNull() ? null : jsonFolderObject.getLong("parentId", -1), jsonArray);
+        while (parent != null) {
+            jsonPath = "/" + parent.getString("name") + jsonPath;
+            Long parentId = parent.get("parentId").isNull() ? null : parent.getLong("parentId", -1);
+            parent = getParentById(parentId, jsonArray);
+        }
+        return jsonPath;
+    }
+
+    static JsonObject getParentById(Long id, JsonArray jsonArray) {
+        if (id == null) {
+            return null;
+        }
+        for (int i = 0; i < jsonArray.size(); i++) {
+            if (id.equals(jsonArray.get(i).asObject().getLong("id", -1L))) {
+                return jsonArray.get(i).asObject();
+            }
+        }
+        return null;
+    }
+
 }

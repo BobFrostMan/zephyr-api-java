@@ -38,12 +38,12 @@ Add the dependency to your project's pom.xml (if you are using Maven):
 <dependency>
     <groupId>io.github.bobfrostman</groupId>
     <artifactId>zephyr-scale-java-client</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
 </dependency>
 ```
 Or in your build.gradle (if you are using Gradle):
 ```gradle
-implementation 'io.github.bobfrostman:zephyr-scale-java-client:1.2.0' // Replace with the actual version
+implementation 'io.github.bobfrostman:zephyr-scale-java-client:1.2.1' // Replace with the actual version
 ```
 
 ## Client Initialization

@@ -50,11 +50,12 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
     @Override
     public GetTestCasesResponse getTestCases(String folder, boolean includeSteps) {
         ZephyrProjectClientCache cache = useCache();
-        List<ZephyrTestCaseFolder> folders = cache.getFoldersAsMap().values().stream().filter(e -> e.getPath().equals(folder)).collect(Collectors.toList());
+        final String searchFolder = !folder.endsWith("/") ? folder + "/" : folder;
+        List<ZephyrTestCaseFolder> folders = cache.getFoldersAsMap().values().stream().filter(e -> e.getPath().equals(searchFolder)).collect(Collectors.toList());
         if (folders.isEmpty()) {
             return new GetTestCasesResponse(200, new ArrayList<>(), null);
         }
-        String url = folder.equals("/")
+        String url = searchFolder.equals("/")
                 ? String.format(PROJECT_REQUEST_PARAMS, apiUrl, "testcases", projectKey)
                 : String.format(PROJECT_FOLDER_REQUEST_PARAMS, apiUrl, "testcases", projectKey, folders.get(0).getId());
         try {
@@ -210,17 +211,8 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
             int statusCode = response.getStatusCode();
             String responseBody = response.getBody();
             JsonObject jsonResponse = Json.parse(responseBody).asObject();
-            List<ZephyrTestCaseFolder> folders = parseValues(jsonResponse.asObject().get("values").asArray(), ZephyrTestCaseFolder.class, clientCache);
+            List<ZephyrTestCaseFolder> folders = parseFolders(jsonResponse.asObject().get("values").asArray());
             if (statusCode >= 200 && statusCode < 300) {
-                if (clientCache != null) {
-                    Map<Long, ZephyrTestCaseFolder> folderMap = new HashMap<>();
-                    for (ZephyrTestCaseFolder folder : folders) {
-                        folderMap.put(folder.getId(), folder);
-                    }
-                    clientCache.setFoldersMapCache(folderMap);
-                    folders = parseValues(jsonResponse.asObject().get("values").asArray(), ZephyrTestCaseFolder.class, clientCache);
-                    clientCache.setFoldersCache(folders);
-                }
                 return new GetFoldersResponse(statusCode, folders, null);
             } else {
                 String errorMessage = jsonResponse.getString("message", "Cannot receive folders");
@@ -310,25 +302,8 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                 .add("statusName", testCase.getStatusName())
                 .add("labels", Json.parse(testCase.getLabels().toString()));
         if (testCase.getFolderId() == null) {
-            List<ZephyrTestCaseFolder> folderList = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).collect(Collectors.toList());
-            if (!folderList.isEmpty()) {
-                Long folderId = folderList.get(0).getId();
-                object.add("folderId", folderId);
-            } else {
-                Long parentId = null;
-                for (String name : testCase.getPath().split("/")) {
-                    name = name.trim();
-                    if (name.isEmpty()) {
-                        continue;
-                    }
-                    Long id = getFolderByName(name, parentId, cache);
-                    if (id == null) {
-                        id = createTestCaseFolder(ZephyrTestCaseFolder.builder().name(name).parentId(parentId).build()).getCreatedFolder().getId();
-                    }
-                    parentId = id;
-                }
-                object.add("folderId", parentId);
-            }
+            Long folderId = createFolderByPathIfNotExists(testCase.getPath(), cache);
+            object.add("folderId", folderId);
         }
         JsonObject customFields = Json.object();
         for (Map.Entry<String, Object> entry : testCase.getCustomFields().entrySet()) {
@@ -376,6 +351,27 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
         }
     }
 
+    private Long createFolderByPathIfNotExists(String path, ZephyrProjectClientCache cache) {
+        List<ZephyrTestCaseFolder> folderList = cache.getFolders().stream().filter(folder -> path.equals(folder.getPath())).collect(Collectors.toList());
+        if (!folderList.isEmpty()) {
+            return folderList.get(0).getId();
+        } else {
+            Long parentId = null;
+            for (String name : path.split("/")) {
+                name = name.trim();
+                if (name.isEmpty()) {
+                    continue;
+                }
+                Long id = getFolderByName(name, parentId, cache);
+                if (id == null) {
+                    id = createTestCaseFolder(ZephyrTestCaseFolder.builder().name(name).parentId(parentId).build()).getCreatedFolder().getId();
+                }
+                parentId = id;
+            }
+            return parentId;
+        }
+    }
+
     private Long getFolderByName(String name, Long parentId, ZephyrProjectClientCache cache) {
         for (ZephyrTestCaseFolder folder : cache.getFolders()) {
             if (folder.getName().equals(name)) {
@@ -404,25 +400,8 @@ public class ZephyrProjectApiClient implements IZephyrProjectApiClient {
                 .add("labels", Json.parse(testCase.getLabels().toString()));
 
         if (testCase.getFolderId() == null || testCase.getPath() != null) {
-            List<ZephyrTestCaseFolder> folderList = cache.getFolders().stream().filter(folder -> testCase.getPath().equals(folder.getPath())).collect(Collectors.toList());
-            if (!folderList.isEmpty()) {
-                Long folderId = folderList.get(0).getId();
-                object.add("folderId", folderId);
-            } else {
-                Long parentId = null;
-                for (String name : testCase.getPath().split("/")) {
-                    name = name.trim();
-                    if (name.isEmpty()) {
-                        continue;
-                    }
-                    Long id = getFolderByName(name, parentId, cache);
-                    if (id == null) {
-                        id = createTestCaseFolder(ZephyrTestCaseFolder.builder().name(name).parentId(parentId).build()).getCreatedFolder().getId();
-                    }
-                    parentId = id;
-                }
-                object.add("folder", Json.object().add("id", parentId));
-            }
+            Long folderId = createFolderByPathIfNotExists(testCase.getPath(), cache);
+            object.add("folder", Json.object().add("id", folderId));
         } else {
             object.add("folder", Json.object().add("id", testCase.getFolderId()));
         }
