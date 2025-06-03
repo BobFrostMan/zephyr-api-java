@@ -124,7 +124,7 @@ public class ZephyrResponseParser {
         Map<String, Object> customFields = new HashMap<>();
         for (int i = 0; i < jsonCustomFieldsObject.names().size(); i++) {
             String name = jsonCustomFieldsObject.names().get(i);
-            customFields.put(name, jsonCustomFieldsObject.get(name));
+            customFields.put(name, jsonCustomFieldsObject.get(name) != null ? jsonCustomFieldsObject.get(name).asString() : null);
         }
         return customFields;
     }
